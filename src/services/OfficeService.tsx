@@ -2,35 +2,60 @@ import { useHttp } from '../hooks/http.hook'
 
 interface NewOfficeInfo {
 	officeName: string
-	officeCount: string
-	officeServices: Array<string>
-	officePrice: string
+	officeCount: number
+	officePrice: number
+	timeFrom: string
+	timeTo: string
+	date: string
+	officeServices: number[]
 }
 
 const useOfficeService = () => {
 	const { request } = useHttp()
 
-	const _apiBase =
-		'https://virtserver.swaggerhub.com/PIDKODIMA/rentOffices/1.0.0'
+	const _apiBase = 'http://localhost:3308' // ваш API
 
 	const createOfficeRent = async ({
 		officeName,
 		officeCount,
-		officeServices,
 		officePrice,
+		timeFrom,
+		timeTo,
+		date,
+		officeServices,
 	}: NewOfficeInfo) => {
-		const res = await request(`${_apiBase}/officeCreate`, 'POST', {
-			officeName,
-			officeCount,
-			officeServices,
-			officePrice,
+		const office = await request(`${_apiBase}/offices`, 'POST', {
+			name: officeName,
+			count: officeCount,
+			price: officePrice,
 		})
 
-		return res
+		const officeOrder = await request(`${_apiBase}/orders`, 'POST', {
+			officeId: office.id,
+			timeFrom,
+			timeTo,
+			date,
+		})
+
+		await Promise.all(
+			officeServices.map(serviceId =>
+				request(`${_apiBase}/services/add`, 'POST', {
+					orderId: officeOrder.id,
+					serviceId,
+				})
+			)
+		)
+
+		return office
+	}
+
+	const getServices = async () => {
+		return await request(`${_apiBase}/services`)
 	}
 
 	return {
 		createOfficeRent,
+		getServices,
 	}
 }
 

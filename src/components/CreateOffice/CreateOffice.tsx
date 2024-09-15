@@ -1,72 +1,59 @@
-import React, { useState } from 'react'
-
+import React, { useState, useEffect } from 'react'
 import useOfficeService from '../../services/OfficeService'
-
-interface ServicePrice {
-	projector: number
-	wifi: number
-	music: number
-}
 
 const CreateOffice: React.FC = () => {
 	const [officeName, setOfficeName] = useState<string>('')
 	const [officeCount, setOfficeCount] = useState<string>('')
 	const [officePrice, setOfficePrice] = useState<string>('')
-	const [officeServices, setOfficeServices] = useState<
-		Array<keyof ServicePrice>
-	>([])
+	const [officeServices, setOfficeServices] = useState<number[]>([])
+	const [timeFrom, setTimeFrom] = useState<string>('')
+	const [timeTo, setTimeTo] = useState<string>('')
+	const [date, setDate] = useState<string>('')
+	const [services, setServices] = useState<any[]>([])
 
-	const { createOfficeRent } = useOfficeService()
+	const { createOfficeRent, getServices } = useOfficeService()
 
-	const servicesPrice: ServicePrice = {
-		projector: 500,
-		wifi: 300,
-		music: 700,
-	}
+	useEffect(() => {
+		getServices().then(data => {
+			console.log('Fetcheed services:', data)
+			setServices(data)
+		})
+	}, [])
 
 	const changeOfficeServices = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { id, checked } = e.target
+		const serviceId = parseInt(id, 10)
 
 		if (checked) {
-			setOfficeServices([...officeServices, id as keyof ServicePrice])
+			setOfficeServices([...officeServices, serviceId])
 		} else {
-			setOfficeServices(officeServices.filter(service => service !== id))
+			setOfficeServices(officeServices.filter(service => service !== serviceId))
 		}
 	}
 
-	const showCheckedServices = (arr: Array<keyof ServicePrice>) => {
-		if (arr.length === 0) return null
-
-		return (
-			<>
-				{arr.map(service => (
-					<div key={service}>
-						<h2>{service}</h2>
-						<h3>Price: {servicesPrice[service]} UAH</h3>
-					</div>
-				))}
-			</>
-		)
-	}
-
-	const onCreateOffice = (e: React.FormEvent<HTMLFormElement>) => {
+	const onCreateOffice = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
+
 		try {
-			createOfficeRent({
+			await createOfficeRent({
 				officeName,
-				officeCount,
+				officeCount: parseInt(officeCount, 10),
+				officePrice: parseInt(officePrice, 10),
+				timeFrom,
+				timeTo,
+				date,
 				officeServices,
-				officePrice,
-			}).then(data => console.log(data))
+			})
+			console.log('Office created successfully')
 		} catch (error) {
-			throw new Error(`ERROR: ${error}`)
+			console.error(`ERROR: ${error}`)
 		}
 	}
 
 	return (
 		<>
 			<h1>Create office</h1>
-			<form action='createOffice' onSubmit={e => onCreateOffice(e)}>
+			<form onSubmit={e => onCreateOffice(e)}>
 				<input
 					type='text'
 					placeholder='Enter name...'
@@ -74,42 +61,49 @@ const CreateOffice: React.FC = () => {
 					value={officeName}
 				/>
 				<input
-					type='text'
+					type='number'
 					placeholder='Enter max count person...'
 					onChange={e => setOfficeCount(e.target.value)}
 					value={officeCount}
 				/>
 				<input
-					type='text'
+					type='number'
 					placeholder='Enter price of Office...'
 					onChange={e => setOfficePrice(e.target.value)}
 					value={officePrice}
 				/>
+				<input
+					type='time'
+					placeholder='Time from...'
+					onChange={e => setTimeFrom(e.target.value)}
+					value={timeFrom}
+				/>
+				<input
+					type='time'
+					placeholder='Time to...'
+					onChange={e => setTimeTo(e.target.value)}
+					value={timeTo}
+				/>
+				<input
+					type='date'
+					placeholder='Enter date...'
+					onChange={e => setDate(e.target.value)}
+					value={date}
+				/>
 				<div>
-					<input
-						id='projector'
-						type='checkbox'
-						onChange={e => changeOfficeServices(e)}
-					/>
-					<label htmlFor='projector'>Projector</label>
-
-					<input
-						id='wifi'
-						type='checkbox'
-						onChange={e => changeOfficeServices(e)}
-					/>
-					<label htmlFor='wifi'>Wi-Fi</label>
-
-					<input
-						id='music'
-						type='checkbox'
-						onChange={e => changeOfficeServices(e)}
-					/>
-					<label htmlFor='music'>Music</label>
+					{services.map(service => (
+						<div key={service.Id?.toString()}>
+							<input
+								id={service.Id}
+								type='checkbox'
+								onChange={changeOfficeServices}
+							/>
+							<label htmlFor={service.Id}>{service.Name}</label>
+						</div>
+					))}
 				</div>
 				<button>Submit</button>
 			</form>
-			{showCheckedServices(officeServices)}
 		</>
 	)
 }

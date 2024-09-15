@@ -9,14 +9,19 @@ export const useHttp = () => {
 			headers = { 'Content-Type': 'application/json' }
 		) => {
 			try {
-				const response = await fetch(url, {
+				const options: RequestInit = {
 					method,
-					body: JSON.stringify(body),
 					headers,
-				})
+				}
+
+				if (method !== 'GET' && body) {
+					options.body = JSON.stringify(body)
+				}
+
+				const response = await fetch(url, options)
 
 				if (!response.ok) {
-					throw new Error(`Cold not fetch ${url}, status: ${response.status}`)
+					throw new Error(`Could not fetch ${url}, status: ${response.status}`)
 				}
 
 				const data = await response.json()
@@ -28,5 +33,6 @@ export const useHttp = () => {
 		},
 		[]
 	)
+
 	return { request }
 }
